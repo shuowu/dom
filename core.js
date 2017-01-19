@@ -33,34 +33,6 @@
       return this;
     },
 
-    parent: function() {
-      if (!this.el || !this.el.parentNode) {
-        return;
-      }
-
-      this.el = this.el.parentNode;
-      return this;
-    },
-
-    sibling: function(className) {
-      if (!this.el) {
-        return;
-      }
-
-      var parent = this.parent();
-      var childNodes = parent.childNodes;
-      for (var i = 0, ii = childNodes.length; i < ii; i++) {
-        var node = childNodes[i];
-        if (this.hasClass(className, node)) {
-          this.el = node;
-          return this;
-        }
-      }
-
-      this.el = null;
-      return this;
-    },
-
     empty: function() {
       if (!this.el) return;
 
@@ -124,6 +96,10 @@
 
       if (el.classList) {
         return el.classList.contains(className);
+      }
+
+      if (!el.className) {
+        return false;
       }
 
       return !!el.className.match(new RegExp('(\\s|^)' + className + '(\\s|$)'));
@@ -242,7 +218,7 @@
         var id = selectorArr[0].substring(1);
         dom.el = document.getElementById(id);
         if (dom.el && selectorArr[1]) {
-          dom.el = dom.el.querySelector(selectorArr[1]);
+          dom.el = dom.el.querySelector(selectorArr.slice(1).join(' '));
         }
       } else {
         dom.el = document.querySelector(selector);
