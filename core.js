@@ -11,28 +11,122 @@
     return result;
   };
 
+  var isElementHidden = function(el) {
+    return window.getComputedStyle(el, null).getPropertyValue('display') === 'none';
+  };
+
   var guid = 1;
   var handlerMap = {};
   var dom = {
     el: null,
+
+    //
+    // Selector methods
+    //
+
     find: function(selector) {
       if (!this.el || !selector) {
         return null;
       }
 
-      return this.el.querySelector(selector);
+      this.el = this.el.querySelector(selector);
+      return this;
     },
 
-    hasClass: function(className) {
-      if (!this.el || !className) {
+    parent: function() {
+      if (!this.el || !this.el.parentNode) {
+        return;
+      }
+
+      this.el = this.el.parentNode;
+      return this;
+    },
+
+    sibling: function(className) {
+      if (!this.el) {
+        return;
+      }
+
+      var parent = this.parent();
+      var childNodes = parent.childNodes;
+      for (var i = 0, ii = childNodes.length; i < ii; i++) {
+        var node = childNodes[i];
+        if (this.hasClass(className, node)) {
+          this.el = node;
+          return this;
+        }
+      }
+
+      this.el = null;
+      return this;
+    },
+
+    empty: function() {
+      if (!this.el) return;
+
+      while (this.el.hasChildNodes()) {
+        this.el.removeChild(el.firstChild);
+      }
+
+      return this;
+    },
+
+    append: function(html) {
+      if (!this.el) {
+        return;
+      }
+
+      this.el.insertAdjacentHTML('beforeend', html);
+      return this;
+    },
+
+    show: function(opt_style) {
+      if (!this.el || !isElementHidden(this.el)) {
+        return;
+      }
+
+      this.el.style.display = opt_style || 'block';
+      return this;
+    },
+
+    hide: function() {
+      if (!this.el) {
+        return;
+      }
+
+      this.el.style.display = 'none';
+      return this;
+    },
+
+    toggle: function(opt_style) {
+      if (!this.el) {
+        return;
+      }
+
+      if (isElementHidden(this.el)) {
+        this.show(opt_style);
+      } else {
+        this.hide();
+      }
+
+      return this;
+    },
+
+    //
+    // Classes methods
+    //
+
+    hasClass: function(className, opt_el) {
+      var el = opt_el || this.el;
+      if (!el || !className) {
         return false;
       }
 
-      if (this.el.classList) {
-        return this.el.classList.contains(className);
+      if (el.classList) {
+        return el.classList.contains(className);
       }
 
-      return !!this.el.className.match(new RegExp('(\\s|^)' + className + '(\\s|$)'));
+      return !!el.className.match(new RegExp('(\\s|^)' + className + '(\\s|$)'));
     },
 
     addClass: function(className) {
@@ -45,6 +139,8 @@
       } else if (!this.hasClass(el, className)) {
         this.el.className += ' ' + className;
       }
+
+      return this;
     },
 
     removeClass: function(className) {
@@ -59,23 +155,13 @@
 
       this.el.className = this.el.className.replace(new RegExp('(?:^|\\s)' +
           className + '(?:\\s|$)'), ' ');
+
+      return this;
     },
 
-    empty: function() {
-      if (!this.el) return;
-
-      while (this.el.hasChildNodes()) {
-        this.el.removeChild(el.firstChild);
-      }
-    },
-
-    append: function(html) {
-      if (!this.el) {
-        return;
-      }
-
-      this.el.insertAdjacentHTML('beforeend', html);
-    },
+    //
+    // Events
+    //
 
     on: function(event, fn) {
       if (!this.el || !event || !fn) {
@@ -86,8 +172,10 @@
       var type = eventObj['type'];
       var namespace = eventObj['namespace'];
       this.el.addEventListener(eventObj['type'], fn, false);
+
       var domEventId = this.el.dataset.domEventGuid;
       if (!domEventId) {
+        domEventId = guid;
         this.el.dataset.domEventGuid = guid++;
       }
       if (!handlerMap[domEventId]) {
@@ -103,7 +191,7 @@
     },
 
     off: function(event) {
-      if (!this.el || event) {
+      if (!this.el || !event) {
         return;
       }
 
@@ -122,6 +210,15 @@
       }
     },
 
+    rebind: function(event, fn) {
+      if (!this.el || !event || !fn) {
+        return;
+      }
+
+      this.off(event);
+      this.on(event, fn);
+    },
+
     hover: function(on, off) {
       if (!this.el) {
         return;
@@ -130,23 +227,22 @@
       this.el.onmouseover = on.bind(this.el);
       this.el.onmouseout = off.bind(this.el);
     }
-
   };
 
   app.dom = function(selector) {
     if (!selector) {
-      console.log('Missing required param');
+      console.error('Missing required param');
       dom.el = null;
       return;
     }
 
     if (typeof selector === 'string') {
-      if (selector.indexOf('#')) {
+      if (selector.indexOf('#') === 0) {
         var selectorArr = selector.split(' ');
-        var id = selectorArr[0];
+        var id = selectorArr[0].substring(1);
         dom.el = document.getElementById(id);
-        if (el && selectorArr[1]) {
-          dom.el.querySelector(selectorArr[1]);
+        if (dom.el && selectorArr[1]) {
+          dom.el = dom.el.querySelector(selectorArr[1]);
         }
       } else {
         dom.el = document.querySelector(selector);
