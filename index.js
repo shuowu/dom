@@ -1,4 +1,4 @@
-(function(app) {
+(function(global) {
   var parseEventName = function(eventName) {
     var result = {};
     if (!eventName) {
@@ -205,7 +205,7 @@
     }
   };
 
-  app.dom = function(selector) {
+  global.dom = function(selector) {
     if (!selector) {
       console.error('Missing required param');
       dom.el = null;
@@ -232,4 +232,4 @@
     return dom;
   };
 
-})(app);
+})(global);
